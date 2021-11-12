@@ -1,4 +1,2 @@
-# binder-workspace
-Repository to store binders
-
-https://ieeexplore.ieee.org/document/9070858
+# CS549 Final project
+## Object Detection for Road Signs
