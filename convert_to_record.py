@@ -111,11 +111,6 @@ if __name__=='__main__':
         help="the directory that holds the full GTRSB dataset including ReadMe.txt and gt.txt",
     )
     parser.add_argument(
-        "--download_link",
-        default='https://sid.erda.dk/public/archives/ff17dc924eba88d5d01a807357d6614c/FullIJCNN2013.zip',
-        help='The source of the dataset to download'
-    )
-    parser.add_argument(
         "--output_dir",
         default=".\\",
         help="where to save the pbtxt and record files. If not specified the files will be saved to the current directory",
