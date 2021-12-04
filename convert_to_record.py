@@ -56,10 +56,13 @@ def create_record(imgfile, boxes, name):
     return tf_example
 
 def main(*args):
+    # open the readme and read out the lines that have the 
+    # class labels
     readmefile = os.path.join(args.data_dir, "ReadMe.txt")
     with open(readmefile) as rm:
         rawclasses = list(rm)[39:82]
 
+    # build the proto label map
     label_list = object_detection.protos.string_int_label_map_pb2.StringIntLabelMap()
     label_dict = {}
     for line in rawclasses:
@@ -75,6 +78,7 @@ def main(*args):
         st = text_format.MessageToString(label_list)
         file.write(st)
 
+    # open and read the ground truth data
     gtfile = os.path.join(args.data_dir, "gt.txt")
     imagedict = {}
     with open(gtfile, newline="") as file:
@@ -87,6 +91,7 @@ def main(*args):
                 imagedict[imgfile] = []
             imagedict[imgfile].append((xmin, ymin, xmax, ymax, id))
 
+    # write the training data to its own file
     records = sorted(imagedict)
     trainoutput = os.path.join(args.output_dir, "train.record")
     with tf.io.TFRecordWriter(trainoutput) as writer:
@@ -95,6 +100,7 @@ def main(*args):
             example = create_record(imgfile, boxes, imagedict[boxes[4].encode()])
             writer.write(example.SerializeToString())
 
+    # write the test data to its own file
     testoutput = os.path.join(args.output_dir, "test.record")
     with tf.io.TFRecordWriter(testoutput) as writer:
         for imgfile in records[600:]:
@@ -104,7 +110,7 @@ def main(*args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
-        description="Prepare the GTSDB for the Tensorflow Object Detection API."
+        description="Prepare the GTSDB dataset for the Tensorflow Object Detection API."
     )
     parser.add_argument(
         "data_dir",
