@@ -55,7 +55,7 @@ def create_record(imgfile, boxes, name):
     )
     return tf_example
 
-def main(*args):
+def main(args):
     # open the readme and read out the lines that have the 
     # class labels
     readmefile = os.path.join(args.data_dir, "ReadMe.txt")
@@ -97,7 +97,7 @@ def main(*args):
     with tf.io.TFRecordWriter(trainoutput) as writer:
         for imgfile in records[:600]:
             boxes = imagedict[imgfile]
-            example = create_record(imgfile, boxes, imagedict[boxes[4].encode()])
+            example = create_record(imgfile, boxes, label_dict[boxes[0][4]].encode())
             writer.write(example.SerializeToString())
 
     # write the test data to its own file
@@ -105,7 +105,7 @@ def main(*args):
     with tf.io.TFRecordWriter(testoutput) as writer:
         for imgfile in records[600:]:
             boxes = imagedict[imgfile]
-            example = create_record(imgfile, boxes,boxes[4].encode())
+            example = create_record(imgfile, boxes, label_dict[boxes[0][4]].encode())
             writer.write(example.SerializeToString())
 
 if __name__=='__main__':
