@@ -9,7 +9,7 @@ import zipfile
 import object_detection.protos.string_int_label_map_pb2
 import urllib.request
 
-def create_record(imgfile, boxes, name):
+def create_record(imgfile, boxes=None):
     img = cv2.imread(imgfile)
     _, encoded_image_data = cv2.imencode(".jpg", img)
     height, width, _ = img.shape
@@ -23,13 +23,16 @@ def create_record(imgfile, boxes, name):
     classes_text = []  # List of string class name of bounding box (1 per box)
     classes = []  # List of integer class id of bounding box (1 per box)
 
+    if boxes is None:
+        boxes = []
+
     for box in boxes:
         xmins.append(box[0] / width)
         ymins.append(box[1] / height)
         xmaxs.append(box[2] / width)
         ymaxs.append(box[3] / height)
         classes.append(box[4])
-        classes_text.append(name)
+        classes_text.append(box[5])
 
     tf_example = tf.train.Example(
         features=tf.train.Features(
@@ -81,36 +84,42 @@ def main(args):
     # open and read the ground truth data
     gtfile = os.path.join(args.data_dir, "gt.txt")
     imagedict = {}
-    with open(gtfile, newline="") as file:
-        reader = csv.reader(file, delimiter=";")
-        for line in reader:
-            imgfile = f"{os.path.join(args.data_dir, line[0])}"
-            xmin, ymin, xmax, ymax = (int(x) for x in line[1:5])
-            id = int(line[5]) + 1
+    with open(gtfile) as file:
+        for line in file:
+            columns = line.split(';')
+            imgfile = f"{os.path.join(args.data_dir, columns[0])}"
+            xmin, ymin, xmax, ymax = (int(x) for x in columns[1:5])
+            id = int(columns[5]) + 1
             if imgfile not in imagedict:
                 imagedict[imgfile] = []
-            imagedict[imgfile].append((xmin, ymin, xmax, ymax, id))
+            imagedict[imgfile].append((xmin, ymin, xmax, ymax, id, label_dict[id].encode()))
 
     # write the training data to its own file
-    records = sorted(imagedict)
+    records = [os.path.join('data', 'images', x) for x in os.listdir('data\\images') if x.endswith('.ppm')]
     trainoutput = os.path.join(args.output_dir, "train.record")
     with tf.io.TFRecordWriter(trainoutput) as writer:
         for imgfile in records[:600]:
-            boxes = imagedict[imgfile]
-            example = create_record(imgfile, boxes, label_dict[boxes[0][4]].encode())
+            if imgfile in imagedict:
+                boxes = imagedict[imgfile]
+                example = create_record(imgfile, boxes)
+            else:
+                example = create_record(imgfile)
             writer.write(example.SerializeToString())
 
     # write the test data to its own file
     testoutput = os.path.join(args.output_dir, "test.record")
     with tf.io.TFRecordWriter(testoutput) as writer:
         for imgfile in records[600:]:
-            boxes = imagedict[imgfile]
-            example = create_record(imgfile, boxes, label_dict[boxes[0][4]].encode())
+            if imgfile in imagedict:
+                boxes = imagedict[imgfile]
+                example = create_record(imgfile, boxes)
+            else:
+                example = create_record(imgfile)
             writer.write(example.SerializeToString())
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
-        description="Prepare the GTSDB dataset for the Tensorflow Object Detection API."
+        description="Prepare the GTRSB dataset for the Tensorflow Object Detection API."
     )
     parser.add_argument(
         "data_dir",
